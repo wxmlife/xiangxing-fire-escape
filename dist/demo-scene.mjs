@@ -23,7 +23,7 @@ export const demoScene = {
     { id: 'bike-6', kind: 'object', type: 'circle', x: 0.510, y: 0.368, radius: 0.022 },
     { id: 'bike-7', kind: 'object', type: 'circle', x: 0.551, y: 0.394, radius: 0.023 },
 
-    // 用户确认：白色泡沫围住的区域不可通行。E1/E4 因此作废。
+    // 用户确认：白色泡沫围住的区域不可通行，始终作为硬障碍处理。
     { id: 'foam-left', kind: 'foam', type: 'rect', x: 0.035, y: 0.380, width: 0.045, height: 0.245 },
     { id: 'foam-right', kind: 'foam', type: 'rect', x: 0.765, y: 0.390, width: 0.080, height: 0.590 },
     { id: 'foam-bottom-west', kind: 'foam', type: 'rect', x: 0.0, y: 0.945, width: 0.235, height: 0.055 },
@@ -44,8 +44,9 @@ export const demoScene = {
     { id: 'p7', label: '7号逃生者', building: '7号楼', x: 0.562, y: 0.625, color: ROUTE_COLORS[6], confidence: 'inferred' },
   ],
   exits: [
-    { id: 'southwest', code: 'E2', label: 'E2 西南安全口', x: 0.285, y: 0.972 },
-    { id: 'southeast', code: 'E3', label: 'E3 东南安全口', x: 0.620, y: 0.972 },
+    // 最新照片标注：安全出口位于图片上方两条开放巷口。
+    { id: 'northwest', code: 'E1', label: 'E1 北侧安全口', x: 0.315, y: 0.115 },
+    { id: 'northeast', code: 'E2', label: 'E2 北侧安全口', x: 0.570, y: 0.115 },
   ],
   fires: [{ id: 'fire-1', x: 0.520, y: 0.385, hardRadius: 0.020, radius: 0.130, intensity: 7 }],
 };

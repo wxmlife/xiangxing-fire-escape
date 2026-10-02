@@ -103,10 +103,11 @@ test('green region detection ignores isolated noise and returns normalized cente
   assert.ok(Math.abs(regions[0].y - (4 / 3) / 3) < 0.01);
 });
 
-test('the demo treats white foam as hard obstacles and never uses a side-wall exit', () => {
+test('the demo uses the two corrected north exits and treats white foam as hard obstacles', () => {
   const foam = demoScene.obstacles.filter((shape) => shape.kind === 'foam');
   assert.ok(foam.length >= 3, 'visible foam segments must be represented as hard obstacles');
-  assert.ok(demoScene.exits.every((exit) => exit.y < 0.12 || exit.y > 0.88), 'exits must use open top or bottom gaps');
+  assert.deepEqual(demoScene.exits.map((exit) => exit.code), ['E1', 'E2']);
+  assert.ok(demoScene.exits.every((exit) => exit.y < 0.2), 'both exits must be on the north/top side');
 
   const result = planEvacuation({
     width: 108,
@@ -121,6 +122,9 @@ test('the demo treats white foam as hard obstacles and never uses a side-wall ex
   });
 
   assert.equal(result.routes.filter((route) => route.status === 'safe').length, 7);
+  const northExitIds = new Set(demoScene.exits.map((exit) => exit.id));
+  assert.ok(result.routes.every((route) => northExitIds.has(route.exitId)));
+  assert.equal(new Set(result.routes.map((route) => route.exitId)).size, 2, 'both north exits should be usable for evacuation');
   for (const route of result.routes) {
     for (const point of route.path) {
       for (const wall of foam) {
