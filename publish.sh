@@ -10,11 +10,12 @@ usage() {
   ./publish.sh [提交说明]
   ./publish.sh --dry-run
 
-功能：运行测试，提交网站文件，推送 GitHub，并等待 GitHub Pages 部署完成。
+功能：更新缓存版本，运行测试，提交网站文件，推送 GitHub，并等待 GitHub Pages 部署完成。
 EOF
 }
 
 dry_run=false
+publish_paths=(dist tests .github README.md publish.sh .gitignore)
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   usage
   exit 0
@@ -24,7 +25,7 @@ if [[ "${1:-}" == "--dry-run" ]]; then
   shift
 fi
 
-for command_name in git gh node; do
+for command_name in git gh node perl; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "缺少命令：$command_name" >&2
     exit 1
@@ -34,6 +35,12 @@ done
 if [[ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]]; then
   echo "当前目录不是 Git 仓库" >&2
   exit 1
+fi
+
+if [[ "$dry_run" != "true" && -n "$(git status --porcelain=v1 -- "${publish_paths[@]}")" ]]; then
+  asset_version="$(date -u '+%Y%m%d%H%M%S')"
+  ASSET_VERSION="$asset_version" perl -0pi -e 's/\?v=[0-9A-Za-z._-]+/"?v=".$ENV{ASSET_VERSION}/ge' dist/index.html dist/app.js
+  echo "已更新静态资源版本：$asset_version"
 fi
 
 if [[ "${PUBLISH_SKIP_TESTS:-0}" != "1" ]]; then
@@ -66,7 +73,6 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 echo "[2/4] 暂存并提交网站文件"
-publish_paths=(dist tests .github README.md publish.sh .gitignore)
 git add -A -- "${publish_paths[@]}"
 
 sensitive_file=""
@@ -119,4 +125,3 @@ echo
 echo "发布完成"
 echo "GitHub：$repo_url"
 echo "网站：$pages_url"
-

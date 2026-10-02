@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#101617" />
     <meta
       name="description"
-      content="上传城中村沙盘照片，校准门、障碍与出口，为七位逃生者规划总线路和个人逃生线路。"
+      content="上传城中村沙盘照片，自动识别绿门与障碍候选，校准后规划总线路和分线逃生线路。"
     />
     <title>巷行 · 火灾逃生线路规划</title>
     <link
@@ -14,7 +14,7 @@
       type="image/svg+xml"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23101617'/%3E%3Cpath d='M15 47V17h14v12h20v18' fill='none' stroke='%23d7ff52' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='15' cy='47' r='5' fill='%23ff655d'/%3E%3Ccircle cx='49' cy='47' r='5' fill='%23d7ff52'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20261002092701" />
   </head>
   <body>
     <div class="app-shell">
@@ -25,7 +25,7 @@
           </div>
           <div>
             <p class="eyebrow">城中村火灾逃生模拟</p>
-            <h1>巷行 <span>EVAC / 07</span></h1>
+            <h1>巷行 <span>EVAC / AUTO</span></h1>
           </div>
         </div>
         <div class="top-actions">
@@ -33,9 +33,27 @@
             <span class="state-light"></span>
             <span id="sceneStateText">沙盘 A · 已校准</span>
           </div>
-          <button class="button button-primary compact" type="button" data-upload-trigger>
+          <button
+            class="button button-secondary compact"
+            type="button"
+            data-open-scenes
+            aria-label="打开历史场景记录"
+            title="打开历史场景记录"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5l3 2M4.5 9a8 8 0 1 1-.2 5M4.5 9V4m0 5h5" /></svg>
+            <span class="desktop-label">场景记录</span>
+            <span class="mobile-label">场景</span>
+          </button>
+          <button
+            class="button button-primary compact"
+            type="button"
+            data-upload-trigger
+            aria-label="上传或拍摄新的沙盘照片"
+            title="上传或拍摄新的沙盘照片"
+          >
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v4h14v-4" /></svg>
-            <span>换一张图</span>
+            <span class="desktop-label">换一张图</span>
+            <span class="mobile-label">上传</span>
           </button>
         </div>
       </header>
@@ -47,7 +65,7 @@
               <span class="kicker">LIVE PLAN</span>
               <div>
                 <h2 id="mapTitle">当前沙盘·总逃生线路</h2>
-                <p id="mapSubtitle">7 位逃生者 · 2 个候选安全口 · 已启用避险与拥堵惩罚</p>
+                <p id="mapSubtitle">多起点 · 多出口 · 已启用避险与拥堵惩罚</p>
               </div>
             </div>
             <button class="icon-button" id="replanButton" type="button" aria-label="重新规划" title="重新规划">
@@ -75,6 +93,8 @@
           <div class="panel-tabs" role="tablist" aria-label="功能切换">
             <button class="panel-tab active" type="button" data-panel="plan" role="tab" aria-selected="true">规划</button>
             <button class="panel-tab" type="button" data-panel="calibrate" role="tab" aria-selected="false">校准</button>
+            <button class="panel-tab" type="button" data-panel="scenes" role="tab" aria-selected="false">场景</button>
+            <button class="panel-tab" type="button" data-panel="training" role="tab" aria-selected="false">训练集</button>
             <button class="panel-tab" type="button" data-panel="method" role="tab" aria-selected="false">方法</button>
           </div>
 
@@ -83,9 +103,9 @@
               <div class="summary-head">
                 <div>
                   <span class="section-label">EVACUATION STATUS</span>
-                  <h3 id="summaryTitle">6 / 7 可安全撤离</h3>
+                  <h3 id="summaryTitle">等待地图标定</h3>
                 </div>
-                <div class="safety-ring" id="safetyRing"><span>6</span><small>/7</small></div>
+                <div class="safety-ring" id="safetyRing"><span>0</span><small>/—</small></div>
               </div>
               <div class="metric-grid">
                 <div><span>识别状态</span><strong id="confidenceMetric">已人工校准</strong></div>
@@ -100,12 +120,24 @@
             <section class="route-list-section">
               <div class="section-heading">
                 <div>
-                  <span class="section-label">SEVEN ROUTES</span>
+                  <span class="section-label">DETECTED ROUTES</span>
                   <h3>分线结果</h3>
                 </div>
                 <span class="soft-badge">同时撤离</span>
               </div>
               <div class="route-list" id="routeList"></div>
+            </section>
+
+            <section class="ranking-section">
+              <div class="section-heading">
+                <div>
+                  <span class="section-label">SIMULATION RANKING</span>
+                  <h3>模拟撤离排行</h3>
+                </div>
+                <span class="soft-badge" id="rankingStatus">等待规划</span>
+              </div>
+              <div class="ranking-list" id="evacuationRanking"></div>
+              <p class="ranking-note">演示用时按路线长度 ÷ 1.35 格/秒估算，用于沙盘方案对比，不代表真实火场时间。</p>
             </section>
           </div>
 
@@ -113,7 +145,7 @@
             <section class="calibration-intro">
               <span class="section-label">PHOTO CALIBRATION</span>
               <h3>上传一张正俯拍照片</h3>
-              <p>系统先找绿色起点候选，你再逐区校正泡沫围挡、其他障碍、出口和火源。未完成障碍复核时不会生成路线。</p>
+              <p>系统先找绿门、障碍候选并自动估算有效规划区，数量不固定。你可手动重画规划区，并校正泡沫围挡、杂物、出口和火源；规划区外一律不可通行，未复核前不生成可通行路线。</p>
               <button class="button button-primary wide" type="button" data-upload-trigger>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l4-4 3 3 4-5 5 6M5 4h14a1 1 0 0 1 1 1v14H4V5a1 1 0 0 1 1-1Z" /></svg>
                 拍照或选择图片
@@ -130,13 +162,15 @@
               </div>
               <div class="tool-grid" id="calibrationTools">
                 <button type="button" data-tool="inspect" class="active"><i class="tool-icon inspect-icon"></i><span>查看</span></button>
+                <button type="button" data-tool="bounds"><i class="tool-icon bounds-icon"></i><span>规划区</span></button>
                 <button type="button" data-tool="obstacle"><i class="tool-icon obstacle-icon"></i><span>障碍</span></button>
                 <button type="button" data-tool="start"><i class="tool-icon start-icon"></i><span>绿门</span></button>
                 <button type="button" data-tool="exit"><i class="tool-icon exit-icon"></i><span>出口</span></button>
                 <button type="button" data-tool="fire"><i class="tool-icon fire-icon"></i><span>火源</span></button>
                 <button type="button" data-tool="erase"><i class="tool-icon erase-icon"></i><span>擦除</span></button>
               </div>
-              <button class="button button-secondary wide" id="detectGreenButton" type="button">重新寻找绿色门</button>
+              <button class="button button-secondary wide" id="detectGreenButton" type="button">重新识别绿门、火源与障碍</button>
+              <p class="recognition-summary" id="recognitionSummary">上传照片后显示候选数量</p>
               <label class="review-check" for="obstacleReviewCheck">
                 <input id="obstacleReviewCheck" type="checkbox" checked />
                 <span><strong>障碍已复核</strong><small>白色泡沫、纸箱、车辆和封闭区域均已标为硬障碍</small></span>
@@ -153,12 +187,67 @@
             </section>
           </div>
 
+          <div class="panel-view" data-panel-view="scenes" hidden>
+            <section class="calibration-intro">
+              <span class="section-label">SCENE HISTORY</span>
+              <h3>历史场景规划</h3>
+              <p>为当前城中村布局命名并保存。照片、绿门、障碍、出口、火源和规划参数会一起记录在当前浏览器。</p>
+              <label class="training-field" for="sceneNameInput">
+                <span>场景名称</span>
+                <input id="sceneNameInput" type="text" maxlength="40" placeholder="例如：西巷 3 号沙盘" />
+              </label>
+              <button class="button button-primary wide" id="saveSceneButton" type="button">保存当前场景</button>
+              <p class="recognition-summary" id="sceneHistoryStatus">当前浏览器暂无记录</p>
+            </section>
+            <section class="tool-section">
+              <div class="section-heading compact-heading">
+                <div><span class="section-label">SAVED SCENES</span><h3>切换场景</h3></div>
+              </div>
+              <div class="scene-history-list" id="sceneHistoryList"></div>
+            </section>
+            <section class="recognition-note">
+              <div class="note-icon">i</div>
+              <div><strong>无需登录</strong><p>记录保存在本机浏览器。清除浏览器站点数据会同时清除这些记录；跨设备同步需后续接入云端账号。</p></div>
+            </section>
+          </div>
+
+          <div class="panel-view" data-panel-view="training" hidden>
+            <section class="calibration-intro">
+              <span class="section-label">LOCAL TRAINING SET</span>
+              <h3>五类训练图像集</h3>
+              <p>上传紧裁切的建筑、障碍物、火源、逃生者起点绿门或白色泡沫照片。样本保存在当前浏览器，会在下次识别时生成对应的待复核候选。</p>
+              <label class="training-field" for="trainingCategory">
+                <span>样本类别</span>
+                <select id="trainingCategory">
+                  <option value="building">建筑（不可穿越）</option>
+                  <option value="obstacle">杂物 / 车辆</option>
+                  <option value="fire">火源</option>
+                  <option value="green-door">逃生者起点绿门</option>
+                  <option value="foam">白色泡沫（障碍）</option>
+                </select>
+              </label>
+              <button class="button button-primary wide" id="trainingUploadButton" type="button">上传训练样本</button>
+              <p class="recognition-summary" id="trainingStatus">本机样本 0 张</p>
+            </section>
+            <section class="tool-section">
+              <div class="section-heading compact-heading">
+                <div><span class="section-label">SAMPLES</span><h3>已保存样本</h3></div>
+                <button class="text-button" id="exportTrainingButton" type="button">导出 JSON</button>
+              </div>
+              <div class="training-grid" id="trainingGrid"></div>
+            </section>
+            <section class="recognition-note">
+              <div class="note-icon">!</div>
+              <div><strong>样本匹配不等于完成模型训练</strong><p>当前版本使用颜色、纹理和边缘特征做本机增量匹配。建筑、障碍物和白色泡沫作为不可通行候选；火源和绿门分别辅助生成风险点和起点候选。所有样本匹配结果都是“待复核候选”，可手动删除或重新标记。</p></div>
+            </section>
+          </div>
+
           <div class="panel-view method-view" data-panel-view="method" hidden>
             <section>
               <span class="section-label">MODEL</span>
               <h3>我如何建模</h3>
               <ol class="method-steps">
-                <li><span>01</span><div><strong>照片空间校准</strong><p>固定正俯拍，用四个定位点把像素坐标转成沙盘平面坐标。</p></div></li>
+                <li><span>01</span><div><strong>照片空间校准</strong><p>固定正俯拍，系统先根据沙盘与绿门候选估算规划区，再由你拖框修正。</p></div></li>
                 <li><span>02</span><div><strong>生成三态占据图</strong><p>将地图分为可通行、障碍和待确认。纸箱、车辆、建筑与白色泡沫围挡都转成硬障碍。</p></div></li>
                 <li><span>03</span><div><strong>标准化场景数据</strong><p>绿门是起点，安全口是终点，火源形成不可通行圈与风险衰减区。</p></div></li>
               </ol>
@@ -169,7 +258,7 @@
               <ol class="method-steps">
                 <li><span>04</span><div><strong>先扩张障碍</strong><p>当前有效人员宽度设为沙盘图宽的 4.6%；108 列网格下对应 5 格，净宽不足的通道直接封闭。</p></div></li>
                 <li><span>05</span><div><strong>A* 最小代价寻路</strong><p>距离、火源风险、未知区域与拥堵都进入代价函数，路线不只是几何最短。</p></div></li>
-                <li><span>06</span><div><strong>七人逐路协调</strong><p>每规划一人就累计通道占用成本，后续路线会主动分流到其他安全口。</p></div></li>
+                <li><span>06</span><div><strong>多起点逐路协调</strong><p>每规划一个起点就累计通道占用成本，后续路线会主动分流到其他安全口。</p></div></li>
               </ol>
             </section>
             <section class="formula-card">
@@ -187,8 +276,9 @@
     </div>
 
     <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
+    <input id="trainingInput" type="file" accept="image/*" multiple hidden />
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js?v=20261002092701"></script>
   </body>
 </html>

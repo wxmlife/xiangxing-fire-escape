@@ -2,8 +2,10 @@ export const ROUTE_COLORS = ['#d7ff52', '#53c7ff', '#ff8b7f', '#b79cff', '#ffca6
 
 export const demoScene = {
   name: '沙盘 A',
+  source: 'demo',
   calibrated: true,
   obstaclesReviewed: true,
+  obstacleScanCompleted: true,
   // 有效人员宽度约占沙盘图宽 4.6%；108 列网格下对应至少 5 格净宽。
   minimumPassageWidth: 0.046,
   obstacles: [
