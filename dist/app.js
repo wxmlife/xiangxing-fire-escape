@@ -9,8 +9,8 @@ import {
   minimumPassageCellsForWidth,
   planEvacuation,
   validateSceneForPlanning,
-} from './planner.mjs?v=20261002092701';
-import { demoScene, ROUTE_COLORS } from './demo-scene.mjs?v=20261002092701';
+} from './planner.mjs?v=20261002093029';
+import { demoScene, ROUTE_COLORS } from './demo-scene.mjs?v=20261002093029';
 
 const DEMO_IMAGE = './assets/demo-sandbox.jpg';
 const TRAINING_STORAGE_KEY = 'xiangxing-training-samples-v1';
@@ -1266,9 +1266,7 @@ function confirmMap() {
   }
   pushHistory();
   state.scene.calibrated = true;
-  state.scene.starts.forEach((start) => {
-    if (start.source !== 'learned-sample') start.confidence = 'confirmed';
-  });
+  state.scene.starts.forEach((start) => { start.confidence = 'confirmed'; });
   recomputePlan({ announce: true });
   switchPanel('plan');
 }

@@ -14,7 +14,7 @@
       type="image/svg+xml"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23101617'/%3E%3Cpath d='M15 47V17h14v12h20v18' fill='none' stroke='%23d7ff52' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='15' cy='47' r='5' fill='%23ff655d'/%3E%3Ccircle cx='49' cy='47' r='5' fill='%23d7ff52'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css?v=20261002092701" />
+    <link rel="stylesheet" href="./styles.css?v=20261002093029" />
   </head>
   <body>
     <div class="app-shell">
@@ -238,7 +238,7 @@
             </section>
             <section class="recognition-note">
               <div class="note-icon">!</div>
-              <div><strong>样本匹配不等于完成模型训练</strong><p>当前版本使用颜色、纹理和边缘特征做本机增量匹配。建筑、障碍物和白色泡沫作为不可通行候选；火源和绿门分别辅助生成风险点和起点候选。所有样本匹配结果都是“待复核候选”，可手动删除或重新标记。</p></div>
+              <div><strong>样本匹配不等于完成模型训练</strong><p>当前版本使用颜色、纹理和边缘特征做本机增量匹配。建筑、障碍物和白色泡沫作为不可通行候选；火源和绿门分别辅助生成风险点和起点候选。首次识别都是“待复核候选”，可手动删除或重新标记；点击确认地图后，绿门起点才会标为已确认。</p></div>
             </section>
           </div>
 
@@ -279,6 +279,6 @@
     <input id="trainingInput" type="file" accept="image/*" multiple hidden />
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script type="module" src="./app.js?v=20261002092701"></script>
+    <script type="module" src="./app.js?v=20261002093029"></script>
   </body>
 </html>
