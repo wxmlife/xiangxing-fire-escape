@@ -83,14 +83,14 @@
               <div class="summary-head">
                 <div>
                   <span class="section-label">EVACUATION STATUS</span>
-                  <h3 id="summaryTitle">7 / 7 可安全撤离</h3>
+                  <h3 id="summaryTitle">6 / 7 可安全撤离</h3>
                 </div>
-                <div class="safety-ring" id="safetyRing"><span>7</span><small>/7</small></div>
+                <div class="safety-ring" id="safetyRing"><span>6</span><small>/7</small></div>
               </div>
               <div class="metric-grid">
                 <div><span>识别状态</span><strong id="confidenceMetric">已人工校准</strong></div>
                 <div><span>最大风险</span><strong id="riskMetric">火源北侧路口</strong></div>
-                <div><span>安全余量</span><strong id="clearanceMetric">2.5 格</strong></div>
+                <div><span>最小净宽</span><strong id="clearanceMetric">5 格</strong></div>
                 <div><span>路线更新</span><strong id="updatedMetric">刚刚</strong></div>
               </div>
             </section>
@@ -167,7 +167,7 @@
               <span class="section-label">ROUTING</span>
               <h3>我如何规划路线</h3>
               <ol class="method-steps">
-                <li><span>04</span><div><strong>先扩张障碍</strong><p>按人员宽度、分割误差和安全余量扩张障碍，避免贴边或穿过角缝。</p></div></li>
+                <li><span>04</span><div><strong>先扩张障碍</strong><p>当前有效人员宽度设为沙盘图宽的 4.6%；108 列网格下对应 5 格，净宽不足的通道直接封闭。</p></div></li>
                 <li><span>05</span><div><strong>A* 最小代价寻路</strong><p>距离、火源风险、未知区域与拥堵都进入代价函数，路线不只是几何最短。</p></div></li>
                 <li><span>06</span><div><strong>七人逐路协调</strong><p>每规划一人就累计通道占用成本，后续路线会主动分流到其他安全口。</p></div></li>
               </ol>

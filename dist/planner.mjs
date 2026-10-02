@@ -276,10 +276,14 @@ export function planEvacuation({
   starts = [],
   exits = [],
   fires = [],
-  clearance = 1,
+  clearance,
+  minimumPassageWidth,
   congestionWeight = 1.4,
 }) {
-  const grid = buildPlanningGrid({ width, height, obstacles, unknowns, fires, clearance });
+  const resolvedClearance = Number.isFinite(minimumPassageWidth) && minimumPassageWidth > 0
+    ? (minimumPassageCellsForWidth(width, minimumPassageWidth) - 1) / 2
+    : (Number.isFinite(clearance) ? Math.max(0, Math.round(clearance)) : 1);
+  const grid = buildPlanningGrid({ width, height, obstacles, unknowns, fires, clearance: resolvedClearance });
   const usage = new Float32Array(width * height);
   const riskAt = createRiskFunction(fires, width, height);
   const cellExits = exits.map((exit) => normalizedToCell(exit, width, height));
@@ -313,9 +317,17 @@ export function planEvacuation({
   return {
     grid,
     routes,
+    clearance: resolvedClearance,
+    minimumPassageCells: resolvedClearance * 2 + 1,
     allSafe: routes.length > 0 && routes.every((route) => route.status === 'safe'),
     blockedCount: routes.filter((route) => route.status !== 'safe').length,
   };
+}
+
+export function minimumPassageCellsForWidth(width, minimumPassageWidth) {
+  const normalizedWidth = Number.isFinite(minimumPassageWidth) ? Math.max(0, minimumPassageWidth) : 0;
+  const requiredCells = Math.max(1, Math.ceil(normalizedWidth * Math.max(1, width - 1)));
+  return requiredCells % 2 === 0 ? requiredCells + 1 : requiredCells;
 }
 
 export function filterRoutes(routes, selectedId) {

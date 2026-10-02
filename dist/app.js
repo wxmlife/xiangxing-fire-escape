@@ -1,4 +1,10 @@
-import { detectGreenRegions, filterRoutes, planEvacuation, validateSceneForPlanning } from './planner.mjs';
+import {
+  detectGreenRegions,
+  filterRoutes,
+  minimumPassageCellsForWidth,
+  planEvacuation,
+  validateSceneForPlanning,
+} from './planner.mjs';
 import { demoScene, ROUTE_COLORS } from './demo-scene.mjs';
 
 const DEMO_IMAGE = './assets/demo-sandbox.jpg';
@@ -70,6 +76,17 @@ function routeDistanceLabel(route) {
   return `${Math.round(pathLength(route.path) * 100)} 格`;
 }
 
+function planningDimensions() {
+  const width = 108;
+  const aspectRatio = state.image?.naturalWidth && state.image?.naturalHeight
+    ? state.image.naturalWidth / state.image.naturalHeight
+    : 4 / 3;
+  return {
+    width,
+    height: Math.max(48, Math.round((width - 1) / aspectRatio) + 1),
+  };
+}
+
 function pushHistory() {
   state.undoStack.push(structuredClone(state.scene));
   if (state.undoStack.length > 20) state.undoStack.shift();
@@ -108,15 +125,16 @@ function recomputePlan({ announce = false } = {}) {
     if (announce) showToast('请先标记绿门起点和至少一个安全出口');
     return;
   }
+  const dimensions = planningDimensions();
   state.result = planEvacuation({
-    width: 108,
-    height: 81,
+    ...dimensions,
     obstacles: state.scene.obstacles,
     unknowns: state.scene.unknowns,
     starts: state.scene.starts,
     exits: state.scene.exits,
     fires: state.scene.fires,
     clearance: state.scene.clearance,
+    minimumPassageWidth: state.scene.minimumPassageWidth,
     congestionWeight: 1.75,
   });
   state.routes = state.result.routes;
@@ -174,7 +192,12 @@ function renderSummary() {
   dom.safetyRing.innerHTML = `<span>${safeCount}</span><small>/${total || 7}</small>`;
   dom.confidenceMetric.textContent = state.scene.calibrated ? '已人工校准' : '候选点待确认';
   dom.riskMetric.textContent = state.scene.fires.length ? '火源周边禁行' : '未标记火源';
-  dom.clearanceMetric.textContent = `${state.scene.clearance} 格`;
+  const dimensions = planningDimensions();
+  const minimumCells = state.result?.minimumPassageCells
+    || (Number.isFinite(state.scene.minimumPassageWidth)
+      ? minimumPassageCellsForWidth(dimensions.width, state.scene.minimumPassageWidth)
+      : (Number.isFinite(state.scene.clearance) ? state.scene.clearance * 2 + 1 : 3));
+  dom.clearanceMetric.textContent = `${minimumCells} 格`;
   dom.updatedMetric.textContent = '刚刚';
 }
 
@@ -656,7 +679,7 @@ function handlePhotoUpload(file) {
     name: file.name.replace(/\.[^.]+$/, '') || '新环境',
     calibrated: false,
     obstaclesReviewed: false,
-    clearance: 2,
+    minimumPassageWidth: 0.046,
     obstacles: [],
     unknowns: [],
     starts: [],

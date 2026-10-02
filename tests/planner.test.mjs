@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  CELL_FREE,
   CELL_BLOCKED,
   createGrid,
   setCell,
   getCell,
   inflateGrid,
+  buildPlanningGrid,
   findPath,
   planEvacuation,
   filterRoutes,
@@ -51,6 +53,23 @@ test('obstacle inflation reserves clearance around every blocked cell', () => {
   assert.equal(getCell(inflated, 5, 3), CELL_BLOCKED);
   assert.equal(getCell(inflated, 3, 5), CELL_BLOCKED);
   assert.equal(getCell(inflated, 5, 5), 0, 'cells outside the circular clearance stay free');
+});
+
+test('a two-cell body radius closes four-cell alleys but permits five-cell alleys', () => {
+  const corridor = (rightWallX) => {
+    const grid = createGrid(11, 9);
+    for (let y = 0; y < grid.height; y += 1) {
+      setCell(grid, 2, y, CELL_BLOCKED);
+      setCell(grid, rightWallX, y, CELL_BLOCKED);
+    }
+    return inflateGrid(grid, 2);
+  };
+
+  const fourCellAlley = findPath(corridor(7), { x: 5, y: 0 }, [{ id: 'south', x: 5, y: 8 }]);
+  const fiveCellAlley = findPath(corridor(8), { x: 5, y: 0 }, [{ id: 'south', x: 5, y: 8 }]);
+
+  assert.equal(fourCellAlley.status, 'blocked');
+  assert.equal(fiveCellAlley.status, 'safe');
 });
 
 test('seven escapees receive routes that avoid a hard fire exclusion zone', () => {
@@ -144,13 +163,15 @@ test('the demo uses the two corrected north exits and treats white foam as hard 
     exits: demoScene.exits,
     fires: demoScene.fires,
     clearance: demoScene.clearance,
+    minimumPassageWidth: demoScene.minimumPassageWidth,
     congestionWeight: 1.75,
   });
 
-  assert.equal(result.routes.filter((route) => route.status === 'safe').length, 7);
+  const safeRoutes = result.routes.filter((route) => route.status === 'safe');
+  assert.equal(safeRoutes.length, 6);
   const northExitIds = new Set(demoScene.exits.map((exit) => exit.id));
-  assert.ok(result.routes.every((route) => northExitIds.has(route.exitId)));
-  assert.equal(new Set(result.routes.map((route) => route.exitId)).size, 2, 'both north exits should be usable for evacuation');
+  assert.ok(safeRoutes.every((route) => northExitIds.has(route.exitId)));
+  assert.equal(new Set(safeRoutes.map((route) => route.exitId)).size, 2, 'both north exits should be usable for evacuation');
   for (const route of result.routes) {
     for (const point of route.path) {
       for (const wall of foam) {
@@ -159,5 +180,78 @@ test('the demo uses the two corrected north exits and treats white foam as hard 
         assert.equal(inside, false, `${route.personId} crossed white foam ${wall.id}`);
       }
     }
+  }
+});
+
+test('the demo closes the obstructed east alley instead of routing escapee 4 through it', () => {
+  const rawGrid = buildPlanningGrid({
+    width: 108,
+    height: 81,
+    obstacles: demoScene.obstacles,
+    unknowns: demoScene.unknowns,
+    fires: demoScene.fires,
+    clearance: 0,
+  });
+  const result = planEvacuation({
+    width: 108,
+    height: 81,
+    obstacles: demoScene.obstacles,
+    unknowns: demoScene.unknowns,
+    starts: demoScene.starts,
+    exits: demoScene.exits,
+    fires: demoScene.fires,
+    clearance: demoScene.clearance,
+    minimumPassageWidth: demoScene.minimumPassageWidth,
+    congestionWeight: 1.75,
+  });
+
+  const escapee4 = result.routes.find((route) => route.personId === 'p4');
+  const escapee6 = result.routes.find((route) => route.personId === 'p6');
+  for (const x of [63, 64, 65]) {
+    assert.equal(getCell(rawGrid, x, 29), CELL_FREE, `expected raw east-alley cell ${x},29 to be open`);
+    assert.equal(getCell(result.grid, x, 29), CELL_BLOCKED, `minimum-width rule left east-alley cell ${x},29 open`);
+  }
+  assert.equal(escapee4.status, 'blocked');
+  assert.deepEqual(escapee4.path, []);
+  assert.equal(escapee4.exitId, null);
+  assert.equal(escapee6.status, 'safe');
+  assert.equal(escapee6.exitId, 'northeast');
+  assert.equal(result.blockedCount, 1);
+  assert.equal(result.allSafe, false);
+  assert.deepEqual(
+    result.routes.filter((route) => route.status === 'safe').map((route) => route.personId),
+    ['p1', 'p2', 'p3', 'p5', 'p6', 'p7'],
+  );
+});
+
+test('a normalized passage-width rule keeps the east alley closed at higher grid resolutions', () => {
+  for (const [width, height] of [[108, 81], [216, 162], [320, 240]]) {
+    const result = planEvacuation({
+      width,
+      height,
+      obstacles: demoScene.obstacles,
+      unknowns: demoScene.unknowns,
+      starts: demoScene.starts,
+      exits: demoScene.exits,
+      fires: demoScene.fires,
+      minimumPassageWidth: 0.046,
+      congestionWeight: 1.75,
+    });
+
+    const escapee4 = result.routes.find((route) => route.personId === 'p4');
+    const escapee6 = result.routes.find((route) => route.personId === 'p6');
+    const start4 = demoScene.starts.find((start) => start.id === 'p4');
+    const start4Cell = {
+      x: Math.round(start4.x * (width - 1)),
+      y: Math.round(start4.y * (height - 1)),
+    };
+    assert.equal(getCell(result.grid, start4Cell.x, start4Cell.y), CELL_FREE, `${width}×${height} swallowed escapee 4's start`);
+    assert.ok(demoScene.exits.some((exit) => {
+      const x = Math.round(exit.x * (width - 1));
+      const y = Math.round(exit.y * (height - 1));
+      return getCell(result.grid, x, y) === CELL_FREE;
+    }), `${width}×${height} swallowed every exit`);
+    assert.equal(escapee4.status, 'blocked', `${width}×${height} reopened the east alley`);
+    assert.equal(escapee6.status, 'safe', `${width}×${height} blocked the valid E2 access`);
   }
 });
