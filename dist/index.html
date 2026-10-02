@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101617" />
+    <meta
+      name="description"
+      content="上传城中村沙盘照片，校准门、障碍与出口，为七位逃生者规划总线路和个人逃生线路。"
+    />
+    <title>巷行 · 火灾逃生线路规划</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23101617'/%3E%3Cpath d='M15 47V17h14v12h20v18' fill='none' stroke='%23d7ff52' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='15' cy='47' r='5' fill='%23ff655d'/%3E%3Ccircle cx='49' cy='47' r='5' fill='%23d7ff52'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-group">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><i></i>
+          </div>
+          <div>
+            <p class="eyebrow">城中村火灾逃生模拟</p>
+            <h1>巷行 <span>EVAC / 07</span></h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <div class="scene-state" title="当前地图状态">
+            <span class="state-light"></span>
+            <span id="sceneStateText">沙盘 A · 已校准</span>
+          </div>
+          <button class="button button-primary compact" type="button" data-upload-trigger>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 15v4h14v-4" /></svg>
+            <span>换一张图</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="map-column" aria-label="逃生地图">
+          <div class="map-meta-row">
+            <div class="map-title">
+              <span class="kicker">LIVE PLAN</span>
+              <div>
+                <h2 id="mapTitle">当前沙盘·总逃生线路</h2>
+                <p id="mapSubtitle">7 位逃生者 · 4 个候选安全口 · 已启用避险与拥堵惩罚</p>
+              </div>
+            </div>
+            <button class="icon-button" id="replanButton" type="button" aria-label="重新规划" title="重新规划">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" /></svg>
+            </button>
+          </div>
+
+          <div class="map-frame" id="mapFrame">
+            <canvas id="mapCanvas" aria-label="可交互的沙盘逃生路线图"></canvas>
+            <div class="map-status" id="mapStatus">
+              <span class="pulse-dot"></span>
+              <strong>路线可用</strong>
+              <span>人工校准图</span>
+            </div>
+            <div class="north-mark" aria-hidden="true"><span>N</span><i></i></div>
+            <div class="canvas-hint" id="canvasHint" hidden>按住并拖动画出障碍区域</div>
+          </div>
+
+          <div class="view-switcher" id="routeTabs" role="tablist" aria-label="路线视角"></div>
+
+          <div class="mobile-summary" id="mobileSummary" aria-live="polite"></div>
+        </section>
+
+        <aside class="side-panel" aria-label="路线信息与校准工具">
+          <div class="panel-tabs" role="tablist" aria-label="功能切换">
+            <button class="panel-tab active" type="button" data-panel="plan" role="tab" aria-selected="true">规划</button>
+            <button class="panel-tab" type="button" data-panel="calibrate" role="tab" aria-selected="false">校准</button>
+            <button class="panel-tab" type="button" data-panel="method" role="tab" aria-selected="false">方法</button>
+          </div>
+
+          <div class="panel-view active" data-panel-view="plan">
+            <section class="summary-card">
+              <div class="summary-head">
+                <div>
+                  <span class="section-label">EVACUATION STATUS</span>
+                  <h3 id="summaryTitle">7 / 7 可安全撤离</h3>
+                </div>
+                <div class="safety-ring" id="safetyRing"><span>7</span><small>/7</small></div>
+              </div>
+              <div class="metric-grid">
+                <div><span>识别状态</span><strong id="confidenceMetric">已人工校准</strong></div>
+                <div><span>最大风险</span><strong id="riskMetric">火源北侧路口</strong></div>
+                <div><span>安全余量</span><strong id="clearanceMetric">2.5 格</strong></div>
+                <div><span>路线更新</span><strong id="updatedMetric">刚刚</strong></div>
+              </div>
+            </section>
+
+            <section class="route-focus" id="routeFocus"></section>
+
+            <section class="route-list-section">
+              <div class="section-heading">
+                <div>
+                  <span class="section-label">SEVEN ROUTES</span>
+                  <h3>分线结果</h3>
+                </div>
+                <span class="soft-badge">同时撤离</span>
+              </div>
+              <div class="route-list" id="routeList"></div>
+            </section>
+          </div>
+
+          <div class="panel-view" data-panel-view="calibrate" hidden>
+            <section class="calibration-intro">
+              <span class="section-label">PHOTO CALIBRATION</span>
+              <h3>上传一张正俯拍照片</h3>
+              <p>系统先找绿色起点候选，你再校正障碍、出口和火源。待确认区域不会参与规划。</p>
+              <button class="button button-primary wide" type="button" data-upload-trigger>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l4-4 3 3 4-5 5 6M5 4h14a1 1 0 0 1 1 1v14H4V5a1 1 0 0 1 1-1Z" /></svg>
+                拍照或选择图片
+              </button>
+            </section>
+
+            <section class="tool-section">
+              <div class="section-heading compact-heading">
+                <div>
+                  <span class="section-label">MARKUP TOOLS</span>
+                  <h3>校准地图</h3>
+                </div>
+                <button class="text-button" id="undoButton" type="button">撤销</button>
+              </div>
+              <div class="tool-grid" id="calibrationTools">
+                <button type="button" data-tool="inspect" class="active"><i class="tool-icon inspect-icon"></i><span>查看</span></button>
+                <button type="button" data-tool="obstacle"><i class="tool-icon obstacle-icon"></i><span>障碍</span></button>
+                <button type="button" data-tool="start"><i class="tool-icon start-icon"></i><span>绿门</span></button>
+                <button type="button" data-tool="exit"><i class="tool-icon exit-icon"></i><span>出口</span></button>
+                <button type="button" data-tool="fire"><i class="tool-icon fire-icon"></i><span>火源</span></button>
+                <button type="button" data-tool="erase"><i class="tool-icon erase-icon"></i><span>擦除</span></button>
+              </div>
+              <button class="button button-secondary wide" id="detectGreenButton" type="button">重新寻找绿色门</button>
+              <button class="button button-primary wide" id="confirmMapButton" type="button">确认地图并规划</button>
+            </section>
+
+            <section class="recognition-note">
+              <div class="note-icon">!</div>
+              <div>
+                <strong>不会伪造“高准确率”</strong>
+                <p>技拓摄像头的包装未提供可验证的传感器和分辨率参数。本站将候选结果标为“待确认”，不用未标定的百分比代替校准。</p>
+              </div>
+            </section>
+          </div>
+
+          <div class="panel-view method-view" data-panel-view="method" hidden>
+            <section>
+              <span class="section-label">MODEL</span>
+              <h3>我如何建模</h3>
+              <ol class="method-steps">
+                <li><span>01</span><div><strong>照片空间校准</strong><p>固定正俯拍，用四个定位点把像素坐标转成沙盘平面坐标。</p></div></li>
+                <li><span>02</span><div><strong>生成三态占据图</strong><p>将地图分为可通行、障碍和待确认。纸箱、车辆、建筑与白色泡沫围挡都转成硬障碍。</p></div></li>
+                <li><span>03</span><div><strong>标准化场景数据</strong><p>绿门是起点，安全口是终点，火源形成不可通行圈与风险衰减区。</p></div></li>
+              </ol>
+            </section>
+            <section>
+              <span class="section-label">ROUTING</span>
+              <h3>我如何规划路线</h3>
+              <ol class="method-steps">
+                <li><span>04</span><div><strong>先扩张障碍</strong><p>按人员宽度、分割误差和安全余量扩张障碍，避免贴边或穿过角缝。</p></div></li>
+                <li><span>05</span><div><strong>A* 最小代价寻路</strong><p>距离、火源风险、未知区域与拥堵都进入代价函数，路线不只是几何最短。</p></div></li>
+                <li><span>06</span><div><strong>七人逐路协调</strong><p>每规划一人就累计通道占用成本，后续路线会主动分流到其他安全口。</p></div></li>
+              </ol>
+            </section>
+            <section class="formula-card">
+              <span>综合代价</span>
+              <strong>距离 + 火灾风险 + 通道拥堵 + 安全余量</strong>
+              <p>更换沙盘只替换地图数据，这套规划引擎保持不变。</p>
+            </section>
+            <section class="limitations-card">
+              <strong>演示边界</strong>
+              <p>当前模型用于沙盘几何路径演示；真实火场还需叠加烟气、温度、出口失效和人群行为数据。</p>
+            </section>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
