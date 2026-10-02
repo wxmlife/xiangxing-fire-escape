@@ -108,30 +108,15 @@ function reconstructPath(cameFrom, endIndex, width) {
   return path.reverse();
 }
 
-function nearestFreeCell(grid, point, maxRadius = 8) {
-  const originX = Math.round(point.x);
-  const originY = Math.round(point.y);
-  if (getCell(grid, originX, originY) === CELL_FREE) return { x: originX, y: originY };
-  for (let radius = 1; radius <= maxRadius; radius += 1) {
-    for (let dy = -radius; dy <= radius; dy += 1) {
-      for (let dx = -radius; dx <= radius; dx += 1) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
-        if (getCell(grid, originX + dx, originY + dy) === CELL_FREE) {
-          return { x: originX + dx, y: originY + dy };
-        }
-      }
-    }
-  }
-  return null;
-}
-
 export function findPath(grid, startPoint, exitPoints, options = {}) {
-  const start = nearestFreeCell(grid, startPoint);
+  const start = { x: Math.round(startPoint.x), y: Math.round(startPoint.y) };
   const goals = exitPoints
-    .map((exit) => ({ ...exit, ...(nearestFreeCell(grid, exit) || {}) }))
+    .map((exit) => ({ ...exit, x: Math.round(exit.x), y: Math.round(exit.y) }))
     .filter((goal) => Number.isFinite(goal.x) && Number.isFinite(goal.y) && getCell(grid, goal.x, goal.y) === CELL_FREE);
 
-  if (!start || goals.length === 0) return { status: 'blocked', path: [], cost: Number.POSITIVE_INFINITY };
+  if (getCell(grid, start.x, start.y) !== CELL_FREE || goals.length === 0) {
+    return { status: 'blocked', path: [], cost: Number.POSITIVE_INFINITY };
+  }
 
   const total = grid.width * grid.height;
   const distances = new Float64Array(total);
@@ -336,6 +321,29 @@ export function planEvacuation({
 export function filterRoutes(routes, selectedId) {
   if (!selectedId || selectedId === 'all') return routes;
   return routes.filter((route) => route.personId === selectedId);
+}
+
+export function validateSceneForPlanning(scene, expectedStartCount = 7) {
+  const startCount = Array.isArray(scene?.starts) ? scene.starts.length : 0;
+  const exitCount = Array.isArray(scene?.exits) ? scene.exits.length : 0;
+  if (startCount !== expectedStartCount) {
+    return {
+      valid: false,
+      code: 'start_count',
+      message: `当前有 ${startCount} 个起点，请校准为 ${expectedStartCount} 个绿色门`,
+    };
+  }
+  if (exitCount === 0) {
+    return { valid: false, code: 'missing_exit', message: '请至少标记一个安全出口' };
+  }
+  if (scene?.obstaclesReviewed !== true) {
+    return {
+      valid: false,
+      code: 'obstacles_unreviewed',
+      message: '请先逐区核对白色泡沫与其他障碍，并勾选“障碍已复核”',
+    };
+  }
+  return { valid: true, code: 'ready', message: '地图可规划' };
 }
 
 function isGreenPixel(data, offset) {

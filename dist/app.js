@@ -1,4 +1,4 @@
-import { detectGreenRegions, filterRoutes, planEvacuation } from './planner.mjs';
+import { detectGreenRegions, filterRoutes, planEvacuation, validateSceneForPlanning } from './planner.mjs';
 import { demoScene, ROUTE_COLORS } from './demo-scene.mjs';
 
 const DEMO_IMAGE = './assets/demo-sandbox.jpg';
@@ -26,6 +26,7 @@ const dom = {
   undoButton: document.querySelector('#undoButton'),
   detectGreenButton: document.querySelector('#detectGreenButton'),
   confirmMapButton: document.querySelector('#confirmMapButton'),
+  obstacleReviewCheck: document.querySelector('#obstacleReviewCheck'),
   replanButton: document.querySelector('#replanButton'),
 };
 
@@ -74,18 +75,32 @@ function pushHistory() {
   if (state.undoStack.length > 20) state.undoStack.shift();
 }
 
-function loadSceneImage(url) {
+function loadSceneImage(url, { onLoad, onError } = {}) {
   const image = new Image();
   image.onload = () => {
+    if (state.imageUrl !== url) return;
     state.image = image;
     resizeCanvas();
     drawMap();
+    onLoad?.(image);
   };
-  image.onerror = () => showToast('图片加载失败，请重新选择');
+  image.onerror = () => {
+    if (state.imageUrl !== url) return;
+    state.image = null;
+    showToast('图片加载失败，请改用 JPG 或 PNG 后重试');
+    onError?.();
+  };
   image.src = url;
 }
 
 function recomputePlan({ announce = false } = {}) {
+  if (!state.scene.calibrated) {
+    state.routes = [];
+    state.result = null;
+    render();
+    if (announce) showToast('请先完成障碍复核并确认地图');
+    return;
+  }
   if (!state.scene.starts.length || !state.scene.exits.length) {
     state.routes = [];
     state.result = null;
@@ -132,6 +147,7 @@ function renderMapMeta() {
     : `${state.scene.name}·总逃生线路`;
   dom.mapSubtitle.textContent = `${state.scene.starts.length} 位逃生者 · ${state.scene.exits.length} 个候选安全口 · 已启用避险与拥堵惩罚`;
   dom.sceneStateText.textContent = `${state.scene.name} · ${state.scene.calibrated ? '已校准' : '待确认'}`;
+  dom.obstacleReviewCheck.checked = state.scene.obstaclesReviewed === true;
   dom.mapStatus.classList.toggle('warning', !state.scene.calibrated || state.routes.some((route) => route.status !== 'safe'));
   dom.mapStatus.querySelector('strong').textContent = state.routes.length
     ? (state.routes.every((route) => route.status === 'safe') ? '路线可用' : '存在受阻路线')
@@ -457,6 +473,7 @@ function setTool(tool) {
   dom.canvasHint.textContent = hints[tool];
   dom.canvasHint.hidden = tool === 'inspect' && state.activePanel !== 'calibrate';
   dom.canvas.style.cursor = tool === 'obstacle' ? 'crosshair' : (tool === 'inspect' ? 'default' : 'cell');
+  dom.frame.classList.toggle('drawing', state.activePanel === 'calibrate' && tool !== 'inspect');
 }
 
 function switchPanel(panel) {
@@ -513,7 +530,7 @@ function eraseNearest(point) {
   if (candidates[0]?.distance < 0.055) {
     const collections = { start: state.scene.starts, exit: state.scene.exits, fire: state.scene.fires };
     collections[candidates[0].type].splice(candidates[0].index, 1);
-    return true;
+    return candidates[0].type;
   }
   const obstacleIndex = state.scene.obstacles.findIndex((shape) => {
     if (shape.kind === 'building' || shape.kind === 'boundary') return false;
@@ -522,9 +539,14 @@ function eraseNearest(point) {
   });
   if (obstacleIndex >= 0) {
     state.scene.obstacles.splice(obstacleIndex, 1);
-    return true;
+    return 'obstacle';
   }
-  return false;
+  return null;
+}
+
+function invalidateObstacleReview() {
+  state.scene.obstaclesReviewed = false;
+  dom.obstacleReviewCheck.checked = false;
 }
 
 function onCanvasPointerDown(event) {
@@ -550,9 +572,14 @@ function onCanvasPointerDown(event) {
   if (state.tool === 'fire') {
     state.scene.fires = [{ id: 'fire-user', ...point, hardRadius: 0.04, radius: 0.16, intensity: 7 }];
   }
-  if (state.tool === 'erase' && !eraseNearest(point)) {
-    state.undoStack.pop();
-    showToast('没有找到可删除的标记');
+  if (state.tool === 'erase') {
+    const erasedType = eraseNearest(point);
+    if (!erasedType) {
+      state.undoStack.pop();
+      showToast('没有找到可删除的标记');
+    } else if (erasedType === 'obstacle') {
+      invalidateObstacleReview();
+    }
   }
   state.scene.calibrated = false;
   recomputePlan();
@@ -583,6 +610,7 @@ function onCanvasPointerUp(event) {
     showToast('障碍区域太小，请拖动画出一个矩形');
   } else {
     state.scene.obstacles.push(obstacle);
+    invalidateObstacleReview();
     state.scene.calibrated = false;
     recomputePlan();
   }
@@ -627,6 +655,7 @@ function handlePhotoUpload(file) {
   state.scene = {
     name: file.name.replace(/\.[^.]+$/, '') || '新环境',
     calibrated: false,
+    obstaclesReviewed: false,
     clearance: 2,
     obstacles: [],
     unknowns: [],
@@ -636,22 +665,16 @@ function handlePhotoUpload(file) {
   };
   state.selectedRoute = 'all';
   state.routes = [];
-  loadSceneImage(state.imageUrl);
+  state.image = null;
   switchPanel('calibrate');
-  const waitForImage = () => {
-    if (state.image?.src === state.imageUrl || state.image?.src === new URL(state.imageUrl, location.href).href) findGreenCandidates();
-    else window.setTimeout(waitForImage, 60);
-  };
-  waitForImage();
+  loadSceneImage(state.imageUrl, { onLoad: findGreenCandidates });
 }
 
 function confirmMap() {
-  if (state.scene.starts.length !== 7) {
-    showToast(`当前有 ${state.scene.starts.length} 个起点，请校准为 7 个绿色门`);
-    return;
-  }
-  if (!state.scene.exits.length) {
-    showToast('请至少标记一个安全出口');
+  state.scene.obstaclesReviewed = dom.obstacleReviewCheck.checked;
+  const validation = validateSceneForPlanning(state.scene);
+  if (!validation.valid) {
+    showToast(validation.message);
     return;
   }
   pushHistory();
@@ -710,6 +733,11 @@ dom.undoButton.addEventListener('click', () => {
 dom.detectGreenButton.addEventListener('click', () => {
   pushHistory();
   findGreenCandidates();
+});
+dom.obstacleReviewCheck.addEventListener('change', () => {
+  state.scene.obstaclesReviewed = dom.obstacleReviewCheck.checked;
+  state.scene.calibrated = false;
+  recomputePlan();
 });
 dom.confirmMapButton.addEventListener('click', confirmMap);
 dom.replanButton.addEventListener('click', () => recomputePlan({ announce: true }));

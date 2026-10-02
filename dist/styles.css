@@ -334,6 +334,10 @@ h1 span {
   border-radius: var(--radius);
   background: #18201f;
   box-shadow: var(--shadow);
+  touch-action: pan-y;
+}
+
+.map-frame.drawing {
   touch-action: none;
 }
 
@@ -832,6 +836,43 @@ h1 span {
   color: var(--ink);
   border-color: rgba(215, 255, 82, 0.38);
   background: var(--lime-soft);
+}
+
+.review-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  color: var(--ink);
+  border: 1px solid rgba(215, 255, 82, 0.24);
+  border-radius: 11px;
+  background: rgba(215, 255, 82, 0.06);
+  cursor: pointer;
+}
+
+.review-check input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--lime);
+}
+
+.review-check span,
+.review-check strong,
+.review-check small {
+  display: block;
+}
+
+.review-check strong {
+  font-size: 0.78rem;
+}
+
+.review-check small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
 }
 
 .tool-icon {

@@ -47,7 +47,7 @@
               <span class="kicker">LIVE PLAN</span>
               <div>
                 <h2 id="mapTitle">当前沙盘·总逃生线路</h2>
-                <p id="mapSubtitle">7 位逃生者 · 4 个候选安全口 · 已启用避险与拥堵惩罚</p>
+                <p id="mapSubtitle">7 位逃生者 · 2 个候选安全口 · 已启用避险与拥堵惩罚</p>
               </div>
             </div>
             <button class="icon-button" id="replanButton" type="button" aria-label="重新规划" title="重新规划">
@@ -113,7 +113,7 @@
             <section class="calibration-intro">
               <span class="section-label">PHOTO CALIBRATION</span>
               <h3>上传一张正俯拍照片</h3>
-              <p>系统先找绿色起点候选，你再校正障碍、出口和火源。待确认区域不会参与规划。</p>
+              <p>系统先找绿色起点候选，你再逐区校正泡沫围挡、其他障碍、出口和火源。未完成障碍复核时不会生成路线。</p>
               <button class="button button-primary wide" type="button" data-upload-trigger>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l4-4 3 3 4-5 5 6M5 4h14a1 1 0 0 1 1 1v14H4V5a1 1 0 0 1 1-1Z" /></svg>
                 拍照或选择图片
@@ -137,6 +137,10 @@
                 <button type="button" data-tool="erase"><i class="tool-icon erase-icon"></i><span>擦除</span></button>
               </div>
               <button class="button button-secondary wide" id="detectGreenButton" type="button">重新寻找绿色门</button>
+              <label class="review-check" for="obstacleReviewCheck">
+                <input id="obstacleReviewCheck" type="checkbox" checked />
+                <span><strong>障碍已复核</strong><small>白色泡沫、纸箱、车辆和封闭区域均已标为硬障碍</small></span>
+              </label>
               <button class="button button-primary wide" id="confirmMapButton" type="button">确认地图并规划</button>
             </section>
 

@@ -3,6 +3,7 @@ export const ROUTE_COLORS = ['#d7ff52', '#53c7ff', '#ff8b7f', '#b79cff', '#ffca6
 export const demoScene = {
   name: '沙盘 A',
   calibrated: true,
+  obstaclesReviewed: true,
   clearance: 1,
   obstacles: [
     { id: 'b1', kind: 'building', label: '1', type: 'rect', x: 0.036, y: 0.134, width: 0.232, height: 0.296 },
@@ -35,12 +36,12 @@ export const demoScene = {
   ],
   unknowns: [],
   starts: [
-    { id: 'p1', label: '1号逃生者', building: '1号楼', x: 0.279, y: 0.345, color: ROUTE_COLORS[0], confidence: 'confirmed' },
-    { id: 'p2', label: '2号逃生者', building: '2号楼', x: 0.252, y: 0.790, color: ROUTE_COLORS[1], confidence: 'inferred' },
-    { id: 'p3', label: '3号逃生者', building: '3号楼', x: 0.360, y: 0.285, color: ROUTE_COLORS[2], confidence: 'confirmed' },
-    { id: 'p4', label: '4号逃生者', building: '4号楼', x: 0.543, y: 0.505, color: ROUTE_COLORS[3], confidence: 'confirmed' },
-    { id: 'p5', label: '5号逃生者', building: '5号楼', x: 0.445, y: 0.795, color: ROUTE_COLORS[4], confidence: 'inferred' },
-    { id: 'p6', label: '6号逃生者', building: '6号楼', x: 0.606, y: 0.315, color: ROUTE_COLORS[5], confidence: 'confirmed' },
+    { id: 'p1', label: '1号逃生者', building: '1号楼', x: 0.290, y: 0.338, color: ROUTE_COLORS[0], confidence: 'confirmed' },
+    { id: 'p2', label: '2号逃生者', building: '2号楼', x: 0.262, y: 0.775, color: ROUTE_COLORS[1], confidence: 'inferred' },
+    { id: 'p3', label: '3号逃生者', building: '3号楼', x: 0.355, y: 0.275, color: ROUTE_COLORS[2], confidence: 'confirmed' },
+    { id: 'p4', label: '4号逃生者', building: '4号楼', x: 0.551, y: 0.488, color: ROUTE_COLORS[3], confidence: 'confirmed' },
+    { id: 'p5', label: '5号逃生者', building: '5号楼', x: 0.439, y: 0.788, color: ROUTE_COLORS[4], confidence: 'inferred' },
+    { id: 'p6', label: '6号逃生者', building: '6号楼', x: 0.598, y: 0.300, color: ROUTE_COLORS[5], confidence: 'confirmed' },
     { id: 'p7', label: '7号逃生者', building: '7号楼', x: 0.562, y: 0.625, color: ROUTE_COLORS[6], confidence: 'inferred' },
   ],
   exits: [

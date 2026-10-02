@@ -11,6 +11,7 @@ import {
   planEvacuation,
   filterRoutes,
   detectGreenRegions,
+  validateSceneForPlanning,
 } from '../dist/planner.mjs';
 import { demoScene } from '../dist/demo-scene.mjs';
 
@@ -26,6 +27,18 @@ test('A* reaches the exit without crossing a blocked wall', () => {
   for (const point of result.path) {
     assert.notEqual(getCell(grid, point.x, point.y), CELL_BLOCKED);
   }
+});
+
+test('A* rejects starts and exits that are inside hard obstacles', () => {
+  const grid = createGrid(9, 5);
+  setCell(grid, 1, 2, CELL_BLOCKED);
+  setCell(grid, 7, 2, CELL_BLOCKED);
+
+  const blockedStart = findPath(grid, { x: 1, y: 2 }, [{ id: 'east', x: 8, y: 2 }]);
+  const blockedExit = findPath(grid, { x: 0, y: 2 }, [{ id: 'east', x: 7, y: 2 }]);
+
+  assert.equal(blockedStart.status, 'blocked');
+  assert.equal(blockedExit.status, 'blocked');
 });
 
 test('obstacle inflation reserves clearance around every blocked cell', () => {
@@ -73,6 +86,19 @@ test('route filtering switches between overview and one escapee', () => {
 
   assert.equal(filterRoutes(routes, 'all').length, 2);
   assert.deepEqual(filterRoutes(routes, 'p2'), [{ personId: 'p2' }]);
+});
+
+test('scene validation requires seven starts, an exit, and explicit obstacle review', () => {
+  const validBase = {
+    starts: Array.from({ length: 7 }, (_, index) => ({ id: `p${index}` })),
+    exits: [{ id: 'north' }],
+    obstaclesReviewed: true,
+  };
+
+  assert.equal(validateSceneForPlanning(validBase).valid, true);
+  assert.equal(validateSceneForPlanning({ ...validBase, starts: validBase.starts.slice(0, 6) }).code, 'start_count');
+  assert.equal(validateSceneForPlanning({ ...validBase, exits: [] }).code, 'missing_exit');
+  assert.equal(validateSceneForPlanning({ ...validBase, obstaclesReviewed: false }).code, 'obstacles_unreviewed');
 });
 
 test('green region detection ignores isolated noise and returns normalized centers', () => {
